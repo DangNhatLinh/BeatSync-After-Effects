@@ -1,0 +1,28 @@
+.DS_Store
+*.pyc
+__pycache__/
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Local outputs
+*.beats.json
+analyzer/out/
+extension/panel/tmp_*.json
+
+# Datasets (large, fetch via scripts)
+datasets/raw/
+datasets/cache/
+
+# Model checkpoints
+analyzer/checkpoints/
+*.ckpt
+*.pt
+
+# Notebook scratch
+.ipynb_checkpoints/
+
+# Editor
+.vscode/
+.idea/

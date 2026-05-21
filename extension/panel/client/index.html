@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>BeatSync</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <header>
+        <h1>BeatSync</h1>
+        <p class="sub">Mark every beat on your timeline.</p>
+    </header>
+
+    <section class="row">
+        <label for="audioPath">Audio file</label>
+        <div class="file-row">
+            <input id="audioPath" type="text" placeholder="Pick a wav/mp3 file…" readonly />
+            <button id="btnPickAudio">Browse…</button>
+        </div>
+        <button id="btnUseSelected" class="link">use selected audio layer in AE</button>
+    </section>
+
+    <section class="row">
+        <label for="method">Detection method</label>
+        <select id="method">
+            <option value="librosa">librosa (fast, baseline)</option>
+            <option value="beat_this">Beat This! (neural, best quality)</option>
+        </select>
+    </section>
+
+    <section class="row">
+        <label>Place markers for</label>
+        <div class="checks">
+            <label><input type="checkbox" id="cbBeats" checked /> Beats</label>
+            <label><input type="checkbox" id="cbDownbeats" /> Downbeats</label>
+            <label><input type="checkbox" id="cbOnsets" /> Onsets</label>
+        </div>
+    </section>
+
+    <section class="row">
+        <label for="offset">Time offset (sec)</label>
+        <input id="offset" type="number" step="0.01" value="0" />
+    </section>
+
+    <section class="actions">
+        <button id="btnAnalyze" class="primary">Analyze &amp; place markers</button>
+    </section>
+
+    <section class="status">
+        <pre id="log"></pre>
+    </section>
+
+    <!-- CEP runtime is injected by AE; this file only exists in the CEP environment. -->
+    <script src="CSInterface.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
