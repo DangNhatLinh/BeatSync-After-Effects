@@ -1,5 +1,3 @@
-"""Audio → beats.json. Used by both the CLI and (via subprocess) the CEP panel."""
-
 from __future__ import annotations
 
 import json
@@ -8,13 +6,14 @@ from typing import Literal
 
 from . import schema
 
-Method = Literal["librosa", "beat_this"]
+Method = Literal["librosa", "beat_this", "tcn"]
 
 
 def analyze(
     audio_path: str | Path,
     method: Method = "librosa",
     device: str = "cpu",
+    checkpoint: str | None = None,
 ) -> dict:
     audio_path = str(audio_path)
 
@@ -24,6 +23,9 @@ def analyze(
     elif method == "beat_this":
         from . import ml
         result = ml.detect_beats_beat_this(audio_path, device=device)
+    elif method == "tcn":
+        from . import tcn_infer
+        result = tcn_infer.detect_beats_tcn(audio_path, checkpoint=checkpoint, device=device)
     else:
         raise ValueError(f"unknown method: {method!r}")
 

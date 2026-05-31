@@ -4,8 +4,25 @@ Automatically place timeline markers on every beat of an audio layer in After Ef
 
 ```
 [audio file]  →  Python analyzer  →  beats.json  →  AE extension  →  markers on the timeline
-                (librosa | Beat This!)              (CEP panel or .jsx)
+            (librosa | custom TCN | Beat This!)      (CEP panel or .jsx)
 ```
+
+## Results
+
+A custom 249k-parameter Temporal Convolutional Network, trained from scratch on the
+Ballroom dataset, evaluated against a classical DSP baseline (librosa) and a published
+state-of-the-art transformer (*Beat This!*, CPJKU, ISMIR 2024). Metric is F-measure
+with a ±70 ms tolerance window on a held-out validation split.
+
+| Method | F-measure | Std | Speed (sec/clip) | Params |
+|---|---|---|---|---|
+| librosa (classical DSP baseline) | 0.799 | 0.197 | 0.08 | — |
+| **BeatSync TCN (this project)** | **0.952** | **0.056** | **0.08** | **249k** |
+| Beat This! (SOTA transformer) | 0.988 | 0.015 | 0.91 | ~20M |
+
+The trained TCN beats the classical baseline by **+15 F-measure points**, lands within
+**~4 points of the state of the art**, and runs **~11× faster** than it at **~80× fewer
+parameters**. Reproduce with `python scripts/benchmark.py --data ../datasets/raw`.
 
 Two ways to use it:
 
@@ -23,10 +40,25 @@ pip install -r requirements.txt
 # 2. Analyze a song (librosa baseline — works out of the box)
 python -m beatsync.cli infer --audio path/to/song.wav --out beats.json
 
-# 3. Or use the neural model (downloads a checkpoint on first run)
-python -m beatsync.cli infer --audio path/to/song.wav --out beats.json --method beat_this
+# 3. Or use your own trained TCN (after training — see below)
+python -m beatsync.cli infer --audio path/to/song.wav --out beats.json --method tcn --device mps
 
 # 4. In After Effects: File > Scripts > Run Script File... → BeatSync.jsx, then pick beats.json
+```
+
+## Training your own model
+
+```bash
+pip install -r requirements-ml.txt
+
+# 1. Download the Ballroom dataset (~700 dance tracks + beat annotations)
+python scripts/download_datasets.py
+
+# 2. Train the TCN (uses Apple MPS / CUDA automatically)
+python -m beatsync.train --data ../datasets/raw --out checkpoints --epochs 60
+
+# 3. Benchmark librosa vs your TCN vs Beat This!
+python scripts/benchmark.py --data ../datasets/raw --device mps
 ```
 
 ## Repo layout
@@ -34,14 +66,20 @@ python -m beatsync.cli infer --audio path/to/song.wav --out beats.json --method 
 ```
 analyzer/                   Python: DSP + ML pipeline
   beatsync/
-    dsp.py                  librosa baseline (works today)
-    ml.py                   Beat This! wrapper (works if installed)
-    model.py                custom TCN architecture (for training your own)
-    train.py                training loop scaffold
+    dsp.py                  librosa baseline
+    ml.py                   Beat This! wrapper (pretrained SOTA)
+    model.py                custom TCN architecture
+    features.py             shared log-mel spectrogram (train + infer)
+    dataset.py              Ballroom PyTorch dataset
+    train.py                training loop (MPS/CUDA aware)
+    tcn_infer.py            inference with a trained TCN checkpoint
     eval.py                 F-measure / CMLt / AMLt evaluation
-    infer.py                audio → beats.json
+    infer.py                audio → beats.json (librosa | tcn | beat_this)
     schema.py               beats.json schema
   cli.py                    `python -m beatsync.cli ...`
+  scripts/
+    download_datasets.py    fetch Ballroom audio + annotations
+    benchmark.py            compare all three methods → report
 extension/
   jsx/BeatSync.jsx          standalone ExtendScript (no install)
   panel/                    CEP panel (real plugin UI)

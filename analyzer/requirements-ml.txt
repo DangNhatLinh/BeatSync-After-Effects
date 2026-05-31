@@ -1,0 +1,6 @@
+# M3 training/inference deps (in addition to requirements.txt).
+# Install: pip install -r requirements-ml.txt
+torch>=2.0
+torchaudio>=2.0
+tqdm>=4.66
+mir_eval>=0.7

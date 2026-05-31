@@ -1,8 +1,3 @@
-"""Schema for the beats.json payload consumed by the After Effects extension.
-
-Keep this file dependency-free so the JSX bridge in the CEP panel can mirror it.
-"""
-
 from __future__ import annotations
 
 from typing import Iterable, Optional
@@ -20,15 +15,14 @@ def make_payload(
     onsets: Optional[Iterable[float]] = None,
     extra: Optional[dict] = None,
 ) -> dict:
-    """Build the canonical beats.json payload."""
     payload = {
         "schema_version": SCHEMA_VERSION,
         "source": str(source),
         "method": method,
         "tempo": float(tempo),
         "beats": [float(t) for t in beats],
-        "downbeats": [float(t) for t in (downbeats or [])],
-        "onsets": [float(t) for t in (onsets or [])],
+        "downbeats": [float(t) for t in (downbeats if downbeats is not None else [])],
+        "onsets": [float(t) for t in (onsets if onsets is not None else [])],
     }
     if extra:
         payload["extra"] = extra

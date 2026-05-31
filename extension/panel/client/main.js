@@ -1,14 +1,3 @@
-// BeatSync CEP panel — client side.
-//
-// Responsibilities:
-//   1. Collect inputs from the user.
-//   2. Either get an audio path from the currently selected AE layer (via host.jsx)
-//      or let them browse.
-//   3. Spawn the Python analyzer with window.cep.process and wait for exit.
-//   4. Ask host.jsx to read the resulting beats.json and place markers.
-//
-// Requires --enable-nodejs and --mixed-context in the manifest (already set).
-
 (function () {
     var cs = new CSInterface();
     var log = document.getElementById("log");
@@ -24,8 +13,6 @@
     function setBusy(busy) {
         document.getElementById("btnAnalyze").disabled = busy;
     }
-
-    // --- audio file picking ---
 
     document.getElementById("btnPickAudio").addEventListener("click", function () {
         var result = window.cep.fs.showOpenDialogEx(false, false, "Pick audio file", "", ["wav", "mp3", "flac", "aac", "m4a", "ogg"]);
@@ -43,8 +30,6 @@
             document.getElementById("audioPath").value = res;
         });
     });
-
-    // --- main action ---
 
     document.getElementById("btnAnalyze").addEventListener("click", function () {
         var audio = document.getElementById("audioPath").value.trim();
@@ -66,13 +51,9 @@
         logLine("Analyzing with " + method + "…");
 
         var extRoot = cs.getSystemPath(SystemPath.EXTENSION);
-        // Repo layout: extension/panel/ is the CEP root, so the analyzer lives two
-        // levels up. When ZXP-packaged for end users we'll bundle a frozen analyzer
-        // inside the extension; for now this works in dev with PlayerDebugMode on.
-        var pythonScript = extRoot + "/../../analyzer";
         var outJson = extRoot + "/tmp_beats.json";
 
-        runPython(pythonScript, audio, method, outJson, function (err) {
+        runPython(audio, method, outJson, function (err) {
             if (err) {
                 logLine("Analyzer failed: " + err, "err");
                 setBusy(false);
@@ -93,11 +74,7 @@
         });
     });
 
-    // --- spawn python ---
-
-    function runPython(analyzerDir, audioPath, method, outJson, done) {
-        // We rely on `python3` being on PATH. For a real release, ship a frozen
-        // binary (pyinstaller) inside the extension and point at that instead.
+    function runPython(audioPath, method, outJson, done) {
         var args = [
             "-m", "beatsync.cli", "infer",
             "--audio", audioPath,
@@ -105,9 +82,6 @@
             "--method", method,
             "--quiet"
         ];
-
-        // window.cep.process is CEP's child_process. Argument signature is
-        // (executable, arg1, arg2, ...). We push args one by one.
         var processCall = ["python3"].concat(args);
 
         var spawn;
@@ -122,14 +96,6 @@
             return;
         }
         var pid = spawn.data;
-
-        // CEP doesn't deliver stdout in a stream we can `await`; we just poll exit.
-        // To pass PYTHONPATH so the package is found, we use an env wrapper:
-        // (createProcess doesn't expose env directly; we re-spawn via /bin/sh -c on
-        //  unix or cmd.exe on windows.)
-        // Cleaner: call the launcher shell script instead.
-        // The naive spawn above will only work if `beatsync` is pip-installed.
-        // For dev, run `pip install -e analyzer/` once and you're set.
 
         var poll = setInterval(function () {
             var running = window.cep.process.isRunning(pid);

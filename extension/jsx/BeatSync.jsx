@@ -1,14 +1,3 @@
-// BeatSync.jsx — standalone After Effects script.
-//
-// Workflow:
-//   1. Generate a beats.json from the Python analyzer:
-//        python -m beatsync.cli infer --audio song.wav --out beats.json
-//   2. In AE: select the layer you want markers on (typically the audio layer),
-//      then File > Scripts > Run Script File... and pick THIS file.
-//   3. Pick the beats.json when prompted. Markers appear instantly.
-//
-// Tested on AE 2024 / 2025. Compatible back to AE CC 2018 (JSON support).
-
 #target aftereffects
 
 (function BeatSync() {
@@ -21,8 +10,14 @@
         f.open("r");
         var text = f.read();
         f.close();
-        // AE CC 2018+ ships modern ExtendScript with native JSON.
         return JSON.parse(text);
+    }
+
+    function basename(p) {
+        var i1 = p.lastIndexOf("/");
+        var i2 = p.lastIndexOf("\\");
+        var i = (i1 > i2) ? i1 : i2;
+        return (i >= 0) ? p.substring(i + 1) : p;
     }
 
     function ensureActiveComp() {
@@ -36,8 +31,6 @@
 
     function pickTargetLayer(comp) {
         if (comp.selectedLayers.length > 0) return comp.selectedLayers[0];
-
-        // Fallback: first audio layer in the comp.
         for (var i = 1; i <= comp.numLayers; i++) {
             var L = comp.layer(i);
             if (L.hasAudio) return L;
@@ -46,17 +39,19 @@
         return null;
     }
 
-    function placeMarkers(layer, times, labelPrefix, colorIndex, compDuration) {
+    function placeMarkers(layer, times, labelPrefix) {
         var markerProp = layer.property("Marker");
         var placed = 0;
+        var YIELD_EVERY = 25;
         for (var i = 0; i < times.length; i++) {
             var t = times[i];
-            if (t < 0 || (compDuration && t > compDuration)) continue;
+            if (t < 0) continue;
             var m = new MarkerValue(labelPrefix + " " + (i + 1));
-            m.duration = 0;
-            try { m.label = colorIndex; } catch (e) { /* older AE versions */ }
             markerProp.setValueAtTime(t, m);
             placed++;
+            if (placed % YIELD_EVERY === 0) {
+                $.sleep(1);
+            }
         }
         return placed;
     }
@@ -67,7 +62,7 @@
         w.alignChildren = "fill";
 
         var info = w.add("statictext", undefined,
-            "Source: " + payload.source.split(/[\\/]/).pop() +
+            "Source: " + basename(payload.source) +
             "\nMethod: " + payload.method +
             "\nTempo: " + (payload.tempo ? payload.tempo.toFixed(1) + " BPM" : "n/a") +
             "\nBeats: " + payload.beats.length +
@@ -116,7 +111,6 @@
         return out;
     }
 
-    // ---- main ----
     var comp = ensureActiveComp();
     if (!comp) return;
 
@@ -149,13 +143,13 @@
     var total = 0;
     try {
         if (opts.downbeats) {
-            total += placeMarkers(layer, applyOffset(payload.downbeats, opts.offset), "downbeat", 11, comp.duration);
+            total += placeMarkers(layer, applyOffset(payload.downbeats, opts.offset), "downbeat");
         }
         if (opts.beats) {
-            total += placeMarkers(layer, applyOffset(payload.beats, opts.offset), "beat", 9, comp.duration);
+            total += placeMarkers(layer, applyOffset(payload.beats, opts.offset), "beat");
         }
         if (opts.onsets) {
-            total += placeMarkers(layer, applyOffset(payload.onsets, opts.offset), "onset", 5, comp.duration);
+            total += placeMarkers(layer, applyOffset(payload.onsets, opts.offset), "onset");
         }
     } catch (e) {
         app.endUndoGroup();

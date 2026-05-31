@@ -1,5 +1,3 @@
-// BeatSync host-side ExtendScript — runs in AE's JS engine, called from the panel.
-
 var BeatSync = (function () {
 
     function readJSON(path) {
@@ -30,15 +28,13 @@ var BeatSync = (function () {
         return null;
     }
 
-    function placeOne(layer, times, prefix, colorIndex, offset, compDur) {
+    function placeOne(layer, times, prefix, offset) {
         var markerProp = layer.property("Marker");
         var placed = 0;
         for (var i = 0; i < times.length; i++) {
             var t = times[i] + (offset || 0);
-            if (t < 0 || (compDur && t > compDur)) continue;
+            if (t < 0) continue;
             var m = new MarkerValue(prefix + " " + (i + 1));
-            m.duration = 0;
-            try { m.label = colorIndex; } catch (e) {}
             markerProp.setValueAtTime(t, m);
             placed++;
         }
@@ -58,9 +54,9 @@ var BeatSync = (function () {
 
             app.beginUndoGroup("BeatSync: place markers");
             var total = 0;
-            if (opts.downbeats) total += placeOne(layer, data.downbeats, "downbeat", 11, opts.offset, comp.duration);
-            if (opts.beats)     total += placeOne(layer, data.beats,     "beat",      9, opts.offset, comp.duration);
-            if (opts.onsets)    total += placeOne(layer, data.onsets,    "onset",     5, opts.offset, comp.duration);
+            if (opts.downbeats) total += placeOne(layer, data.downbeats, "downbeat", opts.offset);
+            if (opts.beats)     total += placeOne(layer, data.beats,     "beat",     opts.offset);
+            if (opts.onsets)    total += placeOne(layer, data.onsets,    "onset",    opts.offset);
             app.endUndoGroup();
 
             return "Placed " + total + " markers on '" + layer.name + "' (tempo " + (data.tempo || 0).toFixed(1) + " BPM)";
