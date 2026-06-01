@@ -6,8 +6,11 @@ __pycache__/
 venv/
 env/
 
-# Local outputs
+# Local outputs (generated beats files leak local paths — keep them out)
 *.beats.json
+beats.json
+beats_neural.json
+analyzer/beats*.json
 analyzer/out/
 extension/panel/tmp_*.json
 
